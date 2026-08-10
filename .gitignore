@@ -1,0 +1,23 @@
+# Environnements Python
+.venv/
+.conda/
+venv/
+__pycache__/
+*.pyc
+
+# Sauvegardes générées par l'app
+backup/
+
+# Exports LaTeX horodatés
+export_latex_*.tex
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# VSCodium / VSCode
+.vscode/
+
+
+# Lock libreoffice
+printf '\n# Fichiers de verrouillage LibreOffice\n.~lock.*#\n' >> .gitignore

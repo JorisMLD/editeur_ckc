@@ -1,0 +1,5 @@
+clef_profil,nom_profil,mult_m,mult_v,mult_p,mult_I1,mult_I2,mult_I3,mult_I4,mult_I5,mult_I6,mult_I7,mult_I8,mult_I9,mult_I10,mult_I11
+profil_neutre,Profil neutre (référence),1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
+profil_manip,Difficultés de manipulation,3,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
+profil_visu,Difficultés de visualisation,1.0,3,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
+profil_double_clic,Double clic coûteux,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0

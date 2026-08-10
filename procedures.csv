@@ -1,0 +1,9 @@
+clef,nom,description,deroulement
+proc_visu,Vérification visuelle,,op_pt_obj|op_ajust_obj|op_nbre_txt|op_sgt-pt_const_pt_vol_out_dec|op_dte_pts_const_out_dte|cont_inst_carr1|cont_inst_carr2
+proc_equerre,Soutien équerre,Vérification soutenue par l’équerre,
+proc_test1,1,23,op_nbre|op_seg_ demi_dte
+proc test 3,456,56,op_perp_pt|op_mes_dec|op_ajust_obj|op_pointeur_depl_lib|op_dlt_gom|op_dlt_gom|op_pointeur_agran|op_nbre_txt
+proc_jtesk,d,xgdgx,op_ajust_obj
+proc_demo,Demo,klsdfjmwklmvbx,op_perp_pt|op_nbre|op_perp_dte
+real_test,Test,rtest,op_curseur
+proc_test5,test 5,vxcdcvb,op_perp_pt|op_nbre_txt|op_perp_dte

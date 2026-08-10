@@ -1,0 +1,12 @@
+Code,Actions observables,Manipulation,Perception visuelle,Planification -fonctions exécutives-
+I1,Clic simple,1.0,0,0.0
+I2,Double clic,2.0,0,1.0
+I3,Clic maintenu,2.0,0,1.0
+I4,Déplacement libre,1.0,0,0.0
+I5,Déplacement de la souris vers un point précis ,2.0,1,1.0
+I6,Déplacement libre d’un objet géométrique,2.0,2,1.0
+I7,Déplacement d’un objet géométrique vers un point précis,2.0,1,1.0
+I8,Sélection unique un outil dans une pile ,2.0,1,1.0
+i9,perception des formes,,1,
+i10,perception des propriétés euclidiennes,,1,
+i11,perception des mesures,,1,
