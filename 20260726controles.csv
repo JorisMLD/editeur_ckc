@@ -1,6 +1,5 @@
 ,,Clef,Nom,Assertion 1,Assertion 2,détail des opéraions pour calcul des deme,I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11
-SEGMENT,,,,,,,,,,,,,,,,,
-,1,cont_inst_seg,Contrôle instrumental,Contrôle instrumental,je contrôle l’alignement avec la règle,10 (perception relation euclidienne),,,,,,,,,,,
+SEGMENT,1,cont_inst_seg,Contrôle instrumental,Contrôle instrumental,je contrôle l’alignement avec la règle,10 (perception relation euclidienne),,,,,,,,,,,
 ,2,cont_visu_seg,Contrôle visuel segment,Contrôle visuel,je vois que c’est « droit »,9 (perception distance),,,,,,,,,,,
 ,3,cont_theo_seg,Contrôle théorique segment,je sais qu’un segment est un « bout » de droite,je contrôle l’alignement,?,,,,,,,,,,,
 PERPENDICULAIRE,4,cont_perp_form,Perpendiculaire forme angle droit,Construire une perpendiculaire,"C'est une forme d'angle droit, organisation horizontale ou verticale",10 (perception relation euclidienne),,,,,,,,,,,

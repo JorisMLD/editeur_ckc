@@ -61,9 +61,13 @@ def normalize_col(c: str) -> str:
 
 def load_inframaths(path: str) -> pd.DataFrame:
     """
-    Charge inframaths.csv.
-    Retourne un DataFrame indexé par le Code IM (I1..i11)
-    avec colonnes m (Manipulation), v (Perception), p (Planification).
+    Charge le fichier DEME (ex-inframaths).
+    Retourne un DataFrame indexé par le code normalisé (I1..I11)
+    avec colonnes m (Manipulation), v (Perception visuelle), p (Planification).
+
+    Le fichier DEME utilise des codes numériques (1, 2, ... 11) ;
+    ils sont normalisés en I1, I2, ... pour correspondre aux colonnes
+    i1..i11 des opérateurs et contrôles.
     """
     df = read_csv_auto(path)
     col_map = {}
@@ -82,8 +86,26 @@ def load_inframaths(path: str) -> pd.DataFrame:
         else:
             col_map[c] = nc
     df = df.rename(columns=col_map)
+
+    # Filtrer les lignes vides : garder celles où 'code' est renseigné
+    df = df[df["code"].notna()].copy()
+
+    # Normaliser le code en I1, I2, ...
+    # Gère aussi bien '1', '1.0', 'I1', 'i1' que 1.0
+    def _norm_code(v):
+        s = str(v).strip().upper()
+        if s.startswith("I"):
+            s = s[1:]
+        # '1.0' → '1'
+        try:
+            s = str(int(float(s)))
+        except (ValueError, TypeError):
+            pass
+        return f"I{s}"
+
+    df["code"] = df["code"].apply(_norm_code)
     df = df.set_index("code")
-    df.index = df.index.str.upper()   # insensible à la casse : I1, i9 → I1, I9
+
     for dim in ["m", "v", "p"]:
         df[dim] = pd.to_numeric(df[dim], errors="coerce").fillna(0)
     return df
@@ -110,6 +132,7 @@ def load_operateurs(path: str, im_codes: list) -> pd.DataFrame:
     """
     Charge operateurs.csv.
     Retourne DataFrame indexé par clef avec :
+    - numero (colonne Unnamed:1), categorie (colonne Unnamed:0, fill-forward)
     - nom, finalite, scheme, detail
     - im_{code} pour chaque IM (nombre de mobilisations)
     """
@@ -119,9 +142,20 @@ def load_operateurs(path: str, im_codes: list) -> pd.DataFrame:
     clef_col = next((c for c in df.columns if c.lower().strip() == "clef"), None)
     nom_col  = next((c for c in df.columns if c.lower().strip() == "nom"),  None)
 
-    result = df[[clef_col, nom_col]].copy()
-    result.columns = ["clef", "nom"]
-    result = result.dropna(subset=["clef"])  # supprimer lignes vides
+    # Colonnes non nommées : Unnamed:0 = catégorie, Unnamed:1 = numéro
+    unnamed = [c for c in df.columns if "unnamed" in c.lower()]
+    cat_col = unnamed[0] if len(unnamed) >= 1 else None
+    num_col = unnamed[1] if len(unnamed) >= 2 else None
+
+    # Propager la catégorie AVANT filtrage (fill-forward sur df complet)
+    df["_categorie"] = df[cat_col].ffill() if cat_col else ""
+    df["_numero"]    = df[num_col] if num_col else ""
+
+    # Filtrer les lignes sans clef sur le df complet (garde l'alignement)
+    df = df[df[clef_col].notna()].copy()
+
+    result = df[[clef_col, nom_col, "_categorie", "_numero"]].copy()
+    result.columns = ["clef", "nom", "categorie", "numero"]
 
     for alias, candidates in [
         ("finalite", ["Finalité immédiate", "Finalite immediate", "finalite_immediate"]),
@@ -149,6 +183,9 @@ def load_controles(path: str, im_codes: list) -> pd.DataFrame:
     df = read_csv_auto(path)
     df.columns = [c.strip() for c in df.columns]
 
+    clef_col = next((c for c in df.columns if c.lower().strip() in ["clef", "clé"]), None)
+    nom_col  = next((c for c in df.columns if c.lower().strip() == "nom"), None)
+
     # Colonne catégorie : colonne "Unnamed" qui contient des valeurs en majuscules
     cat_col = None
     for c in df.columns:
@@ -158,17 +195,25 @@ def load_controles(path: str, im_codes: list) -> pd.DataFrame:
                 cat_col = c
                 break
 
-    clef_col = next((c for c in df.columns if c.lower().strip() in ["clef", "clé"]), None)
-    nom_col  = next((c for c in df.columns if c.lower().strip() == "nom"), None)
+    # Colonne numéro : l'autre colonne "Unnamed" (pas celle des catégories)
+    num_col = None
+    for c in df.columns:
+        if "unnamed" in c.lower() and c != cat_col:
+            num_col = c
+            break
 
-    result = df[[clef_col, nom_col]].copy()
-    result.columns = ["clef", "nom"]
-    result = result.dropna(subset=["clef"])  # supprimer lignes vides
-
+    # Propager la catégorie AVANT de filtrer (fill-forward sur le df complet)
     if cat_col:
-        result["categorie"] = df[cat_col].ffill().values
+        df["_categorie"] = df[cat_col].ffill()
     else:
-        result["categorie"] = ""
+        df["_categorie"] = ""
+    df["_numero"] = df[num_col] if num_col else ""
+
+    # Filtrer les lignes sans clef, sur le df complet pour garder l'alignement
+    df = df[df[clef_col].notna()].copy()
+
+    result = df[[clef_col, nom_col, "_categorie", "_numero"]].copy()
+    result.columns = ["clef", "nom", "categorie", "numero"]
 
     for alias, candidates in [
         ("assertion1", ["Assertion 1", "Assertion1", "assertion_1"]),
@@ -320,6 +365,41 @@ def button_grid(labels: dict, prefix: str, ncols: int):
                 st.session_state.current_proc["deroulement"].append(code)
                 st.rerun()
 
+def button_grid_grouped(df: pd.DataFrame, prefix: str, ncols: int, expanded: bool = True):
+    """
+    Grille de boutons regroupée par catégorie.
+    Chaque catégorie est un bloc repliable (expander).
+    df doit avoir une colonne 'nom' et 'categorie', indexé par clef.
+    """
+    if df is None or df.empty:
+        st.caption("Aucun élément chargé.")
+        return
+
+    has_cat = "categorie" in df.columns and df["categorie"].astype(str).str.strip().any()
+
+    if not has_cat:
+        # Pas de catégorie : grille simple
+        button_grid(df["nom"].to_dict(), prefix, ncols)
+        return
+
+    # Conserver l'ordre d'apparition des catégories
+    seen = []
+    for cat in df["categorie"].fillna("").astype(str):
+        c = cat.strip() or "(sans catégorie)"
+        if c not in seen:
+            seen.append(c)
+
+    for cat in seen:
+        mask = df["categorie"].fillna("").astype(str).str.strip().replace("", "(sans catégorie)") == cat
+        sub = df[mask]
+        with st.expander(f"{cat}  ({len(sub)})", expanded=expanded):
+            cols = st.columns(ncols)
+            for i, (code, row) in enumerate(sub.iterrows()):
+                with cols[i % ncols]:
+                    if st.button(str(row["nom"]), key=f"{prefix}_{code}"):
+                        st.session_state.current_proc["deroulement"].append(code)
+                        st.rerun()
+
 
 # ============================================================
 # EXPORT LATEX
@@ -332,6 +412,18 @@ def escape_latex(text) -> str:
                      ("#","\\#"),("{","\\{"),("}","\\}")]:
         text = text.replace(src, dst)
     return text
+
+def fmt_numero(v) -> str:
+    """Formate un numéro CSV : 4.0 → '4', '11bis' → '11bis', NaN → ''."""
+    s = str(v).strip()
+    if s in ("", "nan", "NaN", "None"):
+        return ""
+    # '4.0' → '4' (mais garder '11bis' tel quel)
+    try:
+        f = float(s)
+        return str(int(f))
+    except (ValueError, TypeError):
+        return s
 
 def export_latex(
     ops_df: pd.DataFrame,
@@ -370,13 +462,19 @@ def export_latex(
         "\\hline",
         "$r_i$ & Nom & Finalité & Schème & $c_M$ & $c_V$ & $c_P$ \\\\ \\hline",
     ]
-    for i, (k, row) in enumerate(ops_df.iterrows(), 1):
+    current_cat = None
+    for k, row in ops_df.iterrows():
+        cat = str(row.get("categorie", "")).strip()
+        if cat and cat != current_cat:
+            current_cat = cat
+            tex.append(f"\\multicolumn{{7}}{{|l|}}{{\\textbf{{{escape_latex(cat)}}}}} \\\\ \\hline")
+        num  = fmt_numero(row.get("numero", ""))
         cost = calc_nominal_cost([k], ops_df, ctrl_df, im_df)
-        nom = escape_latex(str(row.get("nom", "")))
-        fin = escape_latex(str(row.get("finalite", "")))
-        sch = escape_latex(str(row.get("scheme", "")))
+        nom  = escape_latex(str(row.get("nom", "")))
+        fin  = escape_latex(str(row.get("finalite", "")))
+        sch  = escape_latex(str(row.get("scheme", "")))
         tex.append(
-            f"$r_{{{i}}}$\\label{{{k}}} & {nom} & {fin} & {sch}"
+            f"$r_{{{num}}}$\\label{{{k}}} & {nom} & {fin} & {sch}"
             f" & {cost['m']:.1f} & {cost['v']:.1f} & {cost['p']:.1f} \\\\ \\hline"
         )
     tex.append("\\end{longtable}\n")
@@ -388,13 +486,19 @@ def export_latex(
         "\\hline",
         "$\\sigma_j$ & Nom & Assertion 1 & Assertion 2 & $c_M$ & $c_V$ & $c_P$ \\\\ \\hline",
     ]
-    for j, (k, row) in enumerate(ctrl_df.iterrows(), 1):
+    current_cat = None
+    for k, row in ctrl_df.iterrows():
+        cat = str(row.get("categorie", "")).strip()
+        if cat and cat != current_cat:
+            current_cat = cat
+            tex.append(f"\\multicolumn{{7}}{{|l|}}{{\\textbf{{{escape_latex(cat)}}}}} \\\\ \\hline")
+        num = fmt_numero(row.get("numero", ""))
         cost = calc_nominal_cost([k], ops_df, ctrl_df, im_df)
         nom = escape_latex(str(row.get("nom", "")))
         a1  = escape_latex(str(row.get("assertion1", "")))
         a2  = escape_latex(str(row.get("assertion2", "")))
         tex.append(
-            f"$\\sigma_{{{j}}}$\\label{{{k}}} & {nom} & {a1} & {a2}"
+            f"$\\sigma_{{{num}}}$\\label{{{k}}} & {nom} & {a1} & {a2}"
             f" & {cost['m']:.1f} & {cost['v']:.1f} & {cost['p']:.1f} \\\\ \\hline"
         )
     tex.append("\\end{longtable}\n")
@@ -473,7 +577,7 @@ st.sidebar.header("Fichiers de données")
 
 ops_path  = st.sidebar.text_input("Opérateurs CSV",    value="operateurs.csv")
 sig_path  = st.sidebar.text_input("Contrôles CSV",     value="controles.csv")
-im_path   = st.sidebar.text_input("Inframaths CSV",    value="inframaths.csv")
+im_path   = st.sidebar.text_input("DEME CSV",          value="DEME.csv")
 proc_path = st.sidebar.text_input("Procédures CSV",    value="procedures.csv")
 prof_path = st.sidebar.text_input("Profils élèves CSV",value="profils.csv")
 list_sep  = st.sidebar.text_input("Séparateur déroulement", value="|", max_chars=1)
@@ -527,6 +631,15 @@ st.sidebar.divider()
 st.sidebar.subheader("Affichage grilles")
 st.session_state.ops_cols = st.sidebar.slider("Colonnes opérateurs", 2, 10, st.session_state.ops_cols)
 st.session_state.sig_cols = st.sidebar.slider("Colonnes contrôles",  2, 10, st.session_state.sig_cols)
+st.session_state.cat_expanded = st.sidebar.checkbox("Catégories dépliées par défaut", value=True)
+_height_presets = {"Compact": 350, "Moyen": 500, "Grand": 700, "Très grand": 900}
+_preset_choice = st.sidebar.radio(
+    "Hauteur zone boutons",
+    list(_height_presets.keys()),
+    index=1,  # "Moyen" par défaut
+    horizontal=True,
+)
+st.session_state.grid_height = _height_presets[_preset_choice]
 
 # --- Export LaTeX ---
 st.sidebar.divider()
@@ -679,20 +792,19 @@ if "current_proc" in st.session_state:
                 f"Total : {sum(pc.values()):.1f}"
             )
 
-    # Grilles de boutons
-    cL, cR = st.columns(2)
-    with cL:
-        st.markdown("### Opérateurs")
-        if ops_labels:
-            button_grid(ops_labels, "op", st.session_state.ops_cols)
-        else:
-            st.caption("Aucun opérateur chargé.")
-    with cR:
-        st.markdown("### Contrôles")
-        if sig_labels:
-            button_grid(sig_labels, "sig", st.session_state.sig_cols)
-        else:
-            st.caption("Aucun contrôle chargé.")
+    # Grilles de boutons (regroupées par catégorie, blocs repliables)
+    # Encapsulées dans un conteneur à hauteur fixe : seules les grilles défilent,
+    # la zone déroulement/métriques ci-dessus reste visible.
+    exp = st.session_state.get("cat_expanded", True)
+    grid_height = st.session_state.get("grid_height", 450)
+    with st.container(height=grid_height):
+        cL, cR = st.columns(2)
+        with cL:
+            st.markdown("### Opérateurs")
+            button_grid_grouped(ops, "op", st.session_state.ops_cols, expanded=exp)
+        with cR:
+            st.markdown("### Contrôles")
+            button_grid_grouped(ctrl, "sig", st.session_state.sig_cols, expanded=exp)
 
     # Bouton corriger
     c_corr, _, _ = st.columns([1, 3, 1])
