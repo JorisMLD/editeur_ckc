@@ -1,13 +1,12 @@
-Code DEME,Actions observables,Manipulation,Perception visuelle,Planification -fonctions exécutives-
-1,Clic simple,1,0,1
-,Clic sur objet,1,1,1
-2,Double clic,3,1,1
-3,Clic maintenu,2,1,1
-4,Déplacement libre du pointeur,1,1,1
-5,Déplacement de la souris vers un point précis ,2,2,2
-6,Déplacement libre d’un objet géométrique,2,1,1
-7,Déplacement d’un objet géométrique vers un point précis,6,6,6
-8,"Perception métriques (longueur, distance)",0,1,1
-9,"perception euclidiennes (relations propriétés géométriques, parallèles, perpendiculaire, etc.)",0,1,1
-10,"perception formes géométriques cercle, carré, triangle, etc.",0,1,1
-11,,,,
+clef,Code DEME,Actions observables,Manipulation,Perception visuelle,Planification -fonctions exécutives-
+deme_clic_simple,1,Clic simple,1,0,1
+deme_double_clic,2,Clic sur objet,1,1,1
+deme_clic_maintenu,3,Double clic,3,1,1
+deme_depl_libre,4,Clic maintenu,2,1,1
+deme_depl_souris_point,5,Déplacement libre du pointeur,1,1,1
+deme_depl_objet_libre,6,Déplacement du pointeur vers un point précis ,2,2,2
+deme_depl_objet_point,7,Déplacement libre d’un objet géométrique,2,1,1
+deme_selec_outil,8,Déplacement d’un objet géométrique vers un point précis,6,6,6
+deme_perc_metrique,9,"Perception métriques (longueur, distance)",0,1,1
+deme_perc_euclidienne,10,"perception euclidiennes (relations propriétés géométriques, parallèles, perpendiculaire, etc.)",0,1,1
+deme_perc_forme,11,"perception formes géométriques cercle, carré, triangle, etc.",0,1,1
