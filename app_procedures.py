@@ -61,20 +61,24 @@ def normalize_col(c: str) -> str:
 
 def load_inframaths(path: str) -> pd.DataFrame:
     """
-    Charge le fichier DEME (ex-inframaths).
-    Retourne un DataFrame indexé par le code normalisé (I1..I11)
-    avec colonnes m (Manipulation), v (Perception visuelle), p (Planification).
+    Charge le fichier DEME.
+    Retourne un DataFrame indexé par la clef DEME (deme_clic_simple, ...)
+    avec colonnes :
+    - numero  : numéro d'affichage (pour δ₁, δ₂, ...)
+    - label   : action observable
+    - m, v, p : coûts (manipulation, perception visuelle, planification)
 
-    Le fichier DEME utilise des codes numériques (1, 2, ... 11) ;
-    ils sont normalisés en I1, I2, ... pour correspondre aux colonnes
-    i1..i11 des opérateurs et contrôles.
+    La liaison avec les opérateurs et contrôles se fait par la clef
+    (nom de colonne), robuste aux changements d'ordre.
     """
     df = read_csv_auto(path)
     col_map = {}
     for c in df.columns:
         nc = normalize_col(c)
-        if "code" in nc:
-            col_map[c] = "code"
+        if nc == "clef" or nc == "cle":
+            col_map[c] = "clef"
+        elif "numero" in nc or "code" in nc:
+            col_map[c] = "numero"
         elif "manipulation" in nc:
             col_map[c] = "m"
         elif "perception" in nc:
@@ -87,46 +91,47 @@ def load_inframaths(path: str) -> pd.DataFrame:
             col_map[c] = nc
     df = df.rename(columns=col_map)
 
-    # Filtrer les lignes vides : garder celles où 'code' est renseigné
-    df = df[df["code"].notna()].copy()
+    # Filtrer les lignes vides : garder celles où 'clef' est renseignée
+    df = df[df["clef"].notna()].copy()
+    df["clef"] = df["clef"].astype(str).str.strip()
+    df = df.set_index("clef")
 
-    # Normaliser le code en I1, I2, ...
-    # Gère aussi bien '1', '1.0', 'I1', 'i1' que 1.0
-    def _norm_code(v):
-        s = str(v).strip().upper()
-        if s.startswith("I"):
-            s = s[1:]
-        # '1.0' → '1'
-        try:
-            s = str(int(float(s)))
-        except (ValueError, TypeError):
-            pass
-        return f"I{s}"
-
-    df["code"] = df["code"].apply(_norm_code)
-    df = df.set_index("code")
-
+    if "numero" in df.columns:
+        df["numero"] = pd.to_numeric(df["numero"], errors="coerce")
     for dim in ["m", "v", "p"]:
         df[dim] = pd.to_numeric(df[dim], errors="coerce").fillna(0)
     return df
+
+
+def deme_display(code: str, im_df: pd.DataFrame) -> str:
+    """Étiquette d'affichage d'un DEME pour l'interface : δ1, δ2, ... (Unicode)."""
+    if im_df is not None and code in im_df.index and "numero" in im_df.columns:
+        num = im_df.loc[code, "numero"]
+        if pd.notna(num):
+            return f"δ{int(num)}"
+    return str(code)
+
+def deme_latex(code: str, im_df: pd.DataFrame) -> str:
+    """Étiquette LaTeX d'un DEME : \\delta_{1}, \\delta_{2}, ..."""
+    if im_df is not None and code in im_df.index and "numero" in im_df.columns:
+        num = im_df.loc[code, "numero"]
+        if pd.notna(num):
+            return f"\\delta_{{{int(num)}}}"
+    return str(code)
 
 
 # ============================================================
 # CHARGEMENT — OPÉRATEURS & CONTRÔLES
 # ============================================================
 
-def _extract_im_code(col_name: str) -> str:
-    """Extrait le code IM depuis 'I1 Clic simple' → 'I1', insensible à la casse."""
-    return col_name.split()[0].upper()
-
 def _get_im_col_map(df: pd.DataFrame, im_codes: list) -> dict:
-    """Retourne {im_code: nom_colonne_df} pour les colonnes IM présentes."""
-    result = {}
-    for col in df.columns:
-        code = _extract_im_code(col)
-        if code in im_codes:
-            result[code] = col
-    return result
+    """
+    Retourne {clef_deme: nom_colonne_df} pour les colonnes DEME présentes.
+    La liaison se fait par correspondance exacte de la clef (nom de colonne),
+    robuste à l'ordre. im_codes est la liste des clefs DEME (index de DEME.csv).
+    """
+    cols = {c.strip(): c for c in df.columns}
+    return {code: cols[code] for code in im_codes if code in cols}
 
 def load_operateurs(path: str, im_codes: list) -> pd.DataFrame:
     """
@@ -260,7 +265,8 @@ def save_procedures_csv(d: dict, csv_path: str, list_sep: str = "|"):
 def create_profil_template(im_df: pd.DataFrame, path: str = "profils.csv"):
     """
     Génère un profil neutre en format large (une ligne par profil).
-    Colonnes : clef_profil, nom_profil, mult_m, mult_v, mult_p, mult_I1...mult_I11
+    Colonnes : clef_profil, nom_profil, mult_m, mult_v, mult_p,
+    puis un multiplicateur par DEME nommé mult_<clef_deme>.
     """
     im_codes = im_df.index.tolist()
     row = {"clef_profil": "profil_neutre", "nom_profil": "Profil neutre (référence)",
@@ -274,12 +280,11 @@ def create_profil_template(im_df: pd.DataFrame, path: str = "profils.csv"):
 def load_profils(path: str) -> pd.DataFrame:
     """
     Charge profils.csv (format large).
-    Index = clef_profil. Colonnes : nom_profil, mult_m, mult_v, mult_p, mult_I1...
+    Index = clef_profil. Colonnes : nom_profil, mult_m, mult_v, mult_p,
+    et mult_<clef_deme> pour chaque DEME.
     """
     df = read_csv_auto(path)
     df.columns = [c.strip() for c in df.columns]
-    # Normaliser les codes IM en majuscules dans les noms de colonnes
-    df.columns = [c.upper() if c.startswith("mult_I") or c.startswith("mult_i") else c for c in df.columns]
     return df.set_index("clef_profil")
 
 
@@ -440,19 +445,21 @@ def export_latex(
         "\\newcommand{\\rref}[1]{$r_{\\ref{#1}}$}",
         "\\newcommand{\\cref}[1]{$\\sigma_{\\ref{#1}}$}",
         "\\newcommand{\\pref}[1]{$\\rho_{\\ref{#1}}$}",
+        "\\newcommand{\\dref}[1]{$\\delta_{\\ref{#1}}$}",
         "",
     ]
 
-    # --- Tableau IMs ---
+    # --- Tableau DEME ---
     tex += [
-        "\\section*{Infra-maths}",
+        "\\section*{DEME}",
         "\\begin{longtable}{|c|p{5cm}|c|c|c|}",
         "\\hline",
-        "Code & Action observable & $c_M$ & $c_V$ & $c_P$ \\\\ \\hline",
+        "DEME & Action observable & $c_M$ & $c_V$ & $c_P$ \\\\ \\hline",
     ]
     for code, row in im_df.iterrows():
+        disp  = deme_latex(code, im_df)   # \delta_{1}, \delta_{2}, ...
         label = escape_latex(str(row.get("label", code)))
-        tex.append(f"{code} & {label} & {row['m']:.0f} & {row['v']:.0f} & {row['p']:.0f} \\\\ \\hline")
+        tex.append(f"${disp}$\\label{{{code}}} & {label} & {row['m']:.0f} & {row['v']:.0f} & {row['p']:.0f} \\\\ \\hline")
     tex.append("\\end{longtable}\n")
 
     # --- Tableau opérateurs ---
