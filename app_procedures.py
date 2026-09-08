@@ -635,6 +635,23 @@ def export_latex(
     return out
 
 
+def to_subscript(s) -> str:
+    """
+    Convertit des chiffres en indices Unicode : '11' → '₁₁', '11bis' → '₁₁bis'.
+    Les caractères non numériques sont laissés tels quels.
+    """
+    subs = {"0":"₀","1":"₁","2":"₂","3":"₃","4":"₄",
+            "5":"₅","6":"₆","7":"₇","8":"₈","9":"₉"}
+    return "".join(subs.get(ch, ch) for ch in str(s))
+
+def deme_unicode(code: str, im_df: pd.DataFrame) -> str:
+    """Étiquette Unicode d'un DEME : δ₁, δ₂, ... à partir de la clef."""
+    if im_df is not None and code in im_df.index and "numero" in im_df.columns:
+        num = im_df.loc[code, "numero"]
+        if pd.notna(num):
+            return f"δ{to_subscript(int(num))}"
+    return str(code)
+
 def export_docx(
     ops_df: pd.DataFrame,
     ctrl_df: pd.DataFrame,
@@ -644,89 +661,181 @@ def export_docx(
     profil_nom: str = None,
 ) -> Path:
     """
-    Exporte le tableau des procédures avec leurs coûts en document Word (.docx).
-    Contient uniquement le tableau des procédures :
-    clé, nom, description, déroulement, coûts nominaux (M/V/P/Total),
-    et coûts ajustés au profil si un profil est actif.
+    Exporte en document Word (.docx) les quatre tableaux, comme l'export LaTeX :
+    DEME, opérateurs, contrôles et procédures, avec leurs coûts.
+
+    La notation symbolique utilise les caractères Unicode avec indices :
+    DEME δ₁…, opérateurs r₁…, contrôles σ₁…, procédures ρ₁…
+    Les opérateurs et contrôles sont regroupés par catégorie, avec une ligne
+    d'en-tête pleine largeur à chaque changement.
 
     Nécessite python-docx (pip install python-docx).
     """
     from docx import Document
     from docx.shared import Pt
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.section import WD_ORIENT
+
+    def _clean(x) -> str:
+        """Renvoie '' pour NaN/None, sinon la chaîne."""
+        s = str(x) if x is not None else ""
+        return "" if s.strip().lower() in ("nan", "none") else s
 
     with_profil = profil_row is not None
 
     doc = Document()
 
-    # Titre
-    titre = doc.add_heading("Procédures et coûts", level=1)
+    # Orientation paysage : les tableaux sont larges
+    sec = doc.sections[0]
+    sec.orient = WD_ORIENT.LANDSCAPE
+    sec.page_width, sec.page_height = sec.page_height, sec.page_width
 
-    # Sous-titre : mode de coût
+    def add_table(headers: list):
+        """Crée un tableau avec sa ligne d'en-tête en gras."""
+        t = doc.add_table(rows=1, cols=len(headers))
+        t.style = "Light Grid Accent 1"
+        for i, h in enumerate(headers):
+            cell = t.rows[0].cells[i]
+            cell.text = h
+            for par in cell.paragraphs:
+                for r in par.runs:
+                    r.bold = True
+        return t
+
+    def add_category_row(t, cat: str, ncols: int):
+        """Ligne pleine largeur en gras pour une catégorie (cellules fusionnées)."""
+        cells = t.add_row().cells
+        merged = cells[0]
+        for c in cells[1:]:
+            merged = merged.merge(c)
+        merged.text = cat
+        for par in merged.paragraphs:
+            for r in par.runs:
+                r.bold = True
+
+    def shrink(t, size=9):
+        """Réduit la police d'un tableau pour la lisibilité."""
+        for row in t.rows:
+            for cell in row.cells:
+                for par in cell.paragraphs:
+                    for r in par.runs:
+                        r.font.size = Pt(size)
+
+    # ---- Titre général ----
+    doc.add_heading("Opérateurs, contrôles et procédures", level=0)
     sous = doc.add_paragraph()
     if with_profil:
-        sous.add_run(f"Coûts nominaux et ajustés au profil : {profil_nom or 'profil actif'}").italic = True
+        sous.add_run(
+            f"Coûts nominaux et ajustés au profil : {profil_nom or 'profil actif'}"
+        ).italic = True
     else:
         sous.add_run("Coûts nominaux (aucun profil appliqué)").italic = True
 
-    # En-têtes du tableau
-    headers = ["Clé", "Nom", "Description", "Déroulement", "M", "V", "P", "Total"]
-    if with_profil:
-        headers += ["M (profil)", "V (profil)", "P (profil)", "Total (profil)"]
-
-    table = doc.add_table(rows=1, cols=len(headers))
-    table.style = "Light Grid Accent 1"
-
-    hdr_cells = table.rows[0].cells
-    for i, h in enumerate(headers):
-        hdr_cells[i].text = h
-        for p in hdr_cells[i].paragraphs:
-            for r in p.runs:
-                r.bold = True
-
-    # Lignes
-    for k, v in dict_procs.items():
-        der  = v.get("deroulement", [])
-        # Déroulement affiché avec les noms lisibles quand disponibles
-        noms = []
-        for c in der:
-            if c in ops_df.index:
-                noms.append(str(ops_df.loc[c, "nom"]))
-            elif c in ctrl_df.index:
-                noms.append(str(ctrl_df.loc[c, "nom"]))
-            else:
-                noms.append(c)
-        der_str = " → ".join(noms)
-
-        cost = calc_nominal_cost(der, ops_df, ctrl_df, im_df)
-        total = sum(cost.values())
-
-        # Nettoyer description et nom : éviter d'afficher 'nan'
-        def _clean(x):
-            s = str(x) if x is not None else ""
-            return "" if s.strip().lower() in ("nan", "none") else s
-
-        cells = table.add_row().cells
+    # ---- 1. Tableau DEME ----
+    doc.add_heading("DEME", level=1)
+    headers = ["DEME", "Action observable", "c_M", "c_V", "c_P"]
+    t = add_table(headers)
+    for code, row in im_df.iterrows():
+        cells = t.add_row().cells
         vals = [
-            k,
+            deme_unicode(code, im_df),
+            _clean(row.get("label", code)),
+            f"{row['m']:.0f}", f"{row['v']:.0f}", f"{row['p']:.0f}",
+        ]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- 2. Tableau opérateurs ----
+    doc.add_heading("Opérateurs", level=1)
+    headers = ["r_i", "Nom", "Finalité", "Schème", "c_M", "c_V", "c_P"]
+    t = add_table(headers)
+    current_cat = None
+    for k, row in ops_df.iterrows():
+        cat = _clean(row.get("categorie", "")).strip()
+        if cat and cat != current_cat:
+            current_cat = cat
+            add_category_row(t, cat, len(headers))
+        num  = fmt_numero(row.get("numero", ""))
+        cost = calc_nominal_cost([k], ops_df, ctrl_df, im_df)
+        cells = t.add_row().cells
+        vals = [
+            f"r{to_subscript(num)}",
+            _clean(row.get("nom", "")),
+            _clean(row.get("finalite", "")),
+            _clean(row.get("scheme", "")),
+            f"{cost['m']:.1f}", f"{cost['v']:.1f}", f"{cost['p']:.1f}",
+        ]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- 3. Tableau contrôles ----
+    doc.add_heading("Contrôles", level=1)
+    headers = ["σ_j", "Nom", "Assertion 1", "Assertion 2", "c_M", "c_V", "c_P"]
+    t = add_table(headers)
+    current_cat = None
+    for k, row in ctrl_df.iterrows():
+        cat = _clean(row.get("categorie", "")).strip()
+        if cat and cat != current_cat:
+            current_cat = cat
+            add_category_row(t, cat, len(headers))
+        num  = fmt_numero(row.get("numero", ""))
+        cost = calc_nominal_cost([k], ops_df, ctrl_df, im_df)
+        cells = t.add_row().cells
+        vals = [
+            f"σ{to_subscript(num)}",
+            _clean(row.get("nom", "")),
+            _clean(row.get("assertion1", "")),
+            _clean(row.get("assertion2", "")),
+            f"{cost['m']:.1f}", f"{cost['v']:.1f}", f"{cost['p']:.1f}",
+        ]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- 4. Tableau procédures ----
+    doc.add_heading("Procédures", level=1)
+    headers = ["ρ_k", "Nom", "Description", "Déroulement", "c_M", "c_V", "c_P", "Total"]
+    if with_profil:
+        headers += ["c_M (profil)", "c_V (profil)", "c_P (profil)", "Total (profil)"]
+    t = add_table(headers)
+
+    # Correspondance clef -> notation symbolique, pour écrire le déroulement
+    sym = {}
+    for k, row in ops_df.iterrows():
+        sym[k] = f"r{to_subscript(fmt_numero(row.get('numero', '')))}"
+    for k, row in ctrl_df.iterrows():
+        sym[k] = f"σ{to_subscript(fmt_numero(row.get('numero', '')))}"
+
+    for idx, (k, v) in enumerate(dict_procs.items(), 1):
+        der  = v.get("deroulement", [])
+        der_str = " → ".join(sym.get(c, c) for c in der)
+        cost  = procedure_cost(v, ops_df, ctrl_df, im_df)
+        total = sum(cost.values())
+        cells = t.add_row().cells
+        vals = [
+            f"ρ{to_subscript(idx)}",
             _clean(v.get("nom", "")),
             _clean(v.get("description", "")),
             der_str,
             f"{cost['m']:.1f}", f"{cost['v']:.1f}", f"{cost['p']:.1f}", f"{total:.1f}",
         ]
         if with_profil:
-            pc = calc_profil_cost(der, ops_df, ctrl_df, im_df, profil_row)
+            pc = procedure_cost(v, ops_df, ctrl_df, im_df, profil_row)
             ptot = sum(pc.values())
             vals += [f"{pc['m']:.1f}", f"{pc['v']:.1f}", f"{pc['p']:.1f}", f"{ptot:.1f}"]
         for i, val in enumerate(vals):
             cells[i].text = str(val)
+    shrink(t)
 
-    # Réduire la taille de police du tableau pour la lisibilité
-    for row in table.rows:
-        for cell in row.cells:
-            for p in cell.paragraphs:
-                for r in p.runs:
-                    r.font.size = Pt(9)
+    # ---- Légende de la notation ----
+    doc.add_paragraph()
+    leg = doc.add_paragraph()
+    leg.add_run("Notation : ").bold = True
+    leg.add_run("δᵢ = DEME, rᵢ = opérateur, σⱼ = contrôle, ρₖ = procédure. "
+                "c_M, c_V, c_P = coûts de manipulation, perception visuelle et planification.")
+    for r in leg.runs:
+        r.font.size = Pt(9)
 
     ts  = datetime.now().strftime("%Y%m%d_%H%M%S")
     out = Path(f"export_procedures_{ts}.docx")
