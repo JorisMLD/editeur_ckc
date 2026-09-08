@@ -239,23 +239,80 @@ def load_controles(path: str, im_codes: list) -> pd.DataFrame:
 # CHARGEMENT — PROCÉDURES
 # ============================================================
 
+def _fmt_count(x) -> object:
+    """Formate un compte : entier si valeur entière (3.0 → 3), sinon flottant."""
+    try:
+        f = float(x)
+    except (ValueError, TypeError):
+        return 0
+    return int(f) if f == int(f) else f
+
+def _clean_text(x) -> str:
+    """Renvoie '' pour NaN/None, sinon la chaîne."""
+    s = str(x) if x is not None else ""
+    return "" if s.strip().lower() in ("nan", "none") else s
+
 def load_procedures_dict(csv_path: str, list_sep: str = "|") -> dict:
+    """
+    Charge procedures.csv.
+    En plus de clef/nom/description/deroulement, lit les colonnes de comptes
+    DEME (préfixe 'deme_') si présentes, et les stocke sous 'deme_counts'.
+    Rétrocompatible : si ces colonnes sont absentes (ancien format),
+    'deme_counts' est vide et le coût sera calculé depuis le déroulement.
+    """
     if not Path(csv_path).exists():
         return {}
     df = read_csv_auto(csv_path)
     df.columns = [c.strip() for c in df.columns]
     df["deroulement"] = (df["deroulement"].fillna("").astype(str)
                          .apply(lambda x: [t.strip() for t in x.split(list_sep) if t.strip()]))
-    return df.set_index("clef")[["nom", "description", "deroulement"]].to_dict(orient="index")
+    deme_cols = [c for c in df.columns if c.startswith("deme_")]
 
-def save_procedures_csv(d: dict, csv_path: str, list_sep: str = "|"):
-    rows = [{"clef": k,
-             "nom": v.get("nom", ""),
-             "description": v.get("description", ""),
-             "deroulement": list_sep.join(v.get("deroulement", []))}
-            for k, v in d.items()]
-    pd.DataFrame(rows, columns=["clef", "nom", "description", "deroulement"]
-                 ).to_csv(csv_path, index=False, encoding="utf-8")
+    result = {}
+    for _, r in df.iterrows():
+        counts = {}
+        for c in deme_cols:
+            val = pd.to_numeric(r[c], errors="coerce")
+            counts[c] = 0.0 if pd.isna(val) else float(val)
+        result[r["clef"]] = {
+            "nom":          _clean_text(r.get("nom", "")),
+            "description":  _clean_text(r.get("description", "")),
+            "deroulement":  r["deroulement"],
+            "deme_counts":  counts,
+        }
+    return result
+
+def save_procedures_csv(d: dict, csv_path: str, list_sep: str = "|",
+                        ops_df: pd.DataFrame = None, ctrl_df: pd.DataFrame = None,
+                        im_df: pd.DataFrame = None):
+    """
+    Sauvegarde procedures.csv.
+    Colonnes : clef, nom, description, deroulement, puis une colonne par DEME
+    (comptes agrégés sur le déroulement), à la manière des contrôles.
+    Les comptes sont recalculés depuis le déroulement quand ops/ctrl/im sont
+    fournis (cas normal dans l'app), garantissant leur cohérence à la sauvegarde.
+    Ils sont aussi réinjectés dans le dictionnaire en mémoire (deme_counts).
+    """
+    deme_codes = list(im_df.index) if im_df is not None else []
+
+    rows = []
+    for k, v in d.items():
+        der = v.get("deroulement", [])
+        if im_df is not None:
+            counts = aggregate_deme_counts(der, ops_df, ctrl_df, im_df)
+            v["deme_counts"] = dict(counts)          # cache en mémoire
+        else:
+            counts = v.get("deme_counts", {})
+        row = {"clef": k,
+               "nom": v.get("nom", ""),
+               "description": v.get("description", ""),
+               "deroulement": list_sep.join(der)}
+        for code in deme_codes:
+            row[code] = _fmt_count(counts.get(code, 0))
+        rows.append(row)
+
+    cols = ["clef", "nom", "description", "deroulement"] + deme_codes
+    pd.DataFrame(rows, columns=cols).to_csv(csv_path, index=False, encoding="utf-8")
 
 
 # ============================================================
@@ -293,23 +350,25 @@ def load_profils(path: str) -> pd.DataFrame:
 # ============================================================
 
 def _im_cols_in(row: pd.Series, im_df: pd.DataFrame) -> list:
-    """Retourne les codes IM ayant une mobilisation > 0 dans une ligne."""
+    """Retourne les codes DEME ayant une mobilisation > 0 dans une ligne."""
     return [
         code for code in im_df.index
         if f"im_{code}" in row.index and float(row[f"im_{code}"]) > 0
     ]
 
-def calc_nominal_cost(
+def aggregate_deme_counts(
     deroulement: list,
     ops_df: pd.DataFrame,
     ctrl_df: pd.DataFrame,
     im_df: pd.DataFrame,
 ) -> dict:
     """
-    Coût nominal (m, v, p) d'une procédure.
-    Pour chaque étape du déroulement : somme des mobilisations × coût IM.
+    Somme les occurrences de chaque DEME sur toutes les étapes du déroulement.
+    Retourne {clef_deme: nombre total d'occurrences}.
+    C'est la représentation « à la manière des contrôles » : une procédure
+    est résumée par son profil de mobilisation DEME.
     """
-    total = {"m": 0.0, "v": 0.0, "p": 0.0}
+    totals = {code: 0.0 for code in im_df.index}
     for step in deroulement:
         row = None
         if ops_df is not None and step in ops_df.index:
@@ -318,11 +377,39 @@ def calc_nominal_cost(
             row = ctrl_df.loc[step]
         if row is None:
             continue
-        for im_code in _im_cols_in(row, im_df):
-            count = float(row[f"im_{im_code}"])
-            for dim in ["m", "v", "p"]:
-                total[dim] += count * float(im_df.loc[im_code, dim])
+        for code in im_df.index:
+            col = f"im_{code}"
+            if col in row.index:
+                totals[code] += float(row[col])
+    return totals
+
+def cost_from_counts(counts: dict, im_df: pd.DataFrame, profil_row: pd.Series = None) -> dict:
+    """
+    Coût (m, v, p) à partir de comptes DEME déjà agrégés.
+    Nominal si profil_row est None, sinon ajusté au profil :
+      coût_dim = mult_dim × Σ_DEME ( count × coût_nominal_DEME_dim × mult_DEME )
+    """
+    total = {"m": 0.0, "v": 0.0, "p": 0.0}
+    for code, cnt in counts.items():
+        cnt = float(cnt)
+        if cnt <= 0 or code not in im_df.index:
+            continue
+        mult_im = float(profil_row.get(f"mult_{code}", 1.0)) if profil_row is not None else 1.0
+        for dim in ["m", "v", "p"]:
+            total[dim] += cnt * float(im_df.loc[code, dim]) * mult_im
+    if profil_row is not None:
+        for dim in ["m", "v", "p"]:
+            total[dim] *= float(profil_row.get(f"mult_{dim}", 1.0))
     return total
+
+def calc_nominal_cost(
+    deroulement: list,
+    ops_df: pd.DataFrame,
+    ctrl_df: pd.DataFrame,
+    im_df: pd.DataFrame,
+) -> dict:
+    """Coût nominal (m, v, p) d'un déroulement — calcul direct depuis les étapes."""
+    return cost_from_counts(aggregate_deme_counts(deroulement, ops_df, ctrl_df, im_df), im_df)
 
 def calc_profil_cost(
     deroulement: list,
@@ -331,30 +418,29 @@ def calc_profil_cost(
     im_df: pd.DataFrame,
     profil_row: pd.Series,
 ) -> dict:
+    """Coût ajusté au profil d'un déroulement — calcul direct depuis les étapes."""
+    return cost_from_counts(
+        aggregate_deme_counts(deroulement, ops_df, ctrl_df, im_df), im_df, profil_row
+    )
+
+def procedure_cost(
+    proc: dict,
+    ops_df: pd.DataFrame,
+    ctrl_df: pd.DataFrame,
+    im_df: pd.DataFrame,
+    profil_row: pd.Series = None,
+) -> dict:
     """
-    Coût ajusté au profil élève.
-    Formule :
-      coût_dim = mult_dim × Σ_étapes Σ_IM ( count × coût_nominal_IM_dim × mult_IM )
+    Coût d'une procédure enregistrée.
+    Utilise en priorité les comptes DEME stockés (deme_counts) — pas de
+    recalcul par parcours du déroulement. Repli sur le calcul direct si les
+    comptes stockés sont absents (ancien format de procedures.csv).
     """
-    total = {"m": 0.0, "v": 0.0, "p": 0.0}
-    for step in deroulement:
-        row = None
-        if ops_df is not None and step in ops_df.index:
-            row = ops_df.loc[step]
-        elif ctrl_df is not None and step in ctrl_df.index:
-            row = ctrl_df.loc[step]
-        if row is None:
-            continue
-        for im_code in _im_cols_in(row, im_df):
-            count    = float(row[f"im_{im_code}"])
-            mult_im  = float(profil_row.get(f"mult_{im_code}", 1.0))
-            for dim in ["m", "v", "p"]:
-                nominal = count * float(im_df.loc[im_code, dim])
-                total[dim] += nominal * mult_im
-    # Multiplicateurs globaux par dimension
-    for dim in ["m", "v", "p"]:
-        total[dim] *= float(profil_row.get(f"mult_{dim}", 1.0))
-    return total
+    counts = proc.get("deme_counts")
+    if counts:
+        return cost_from_counts(counts, im_df, profil_row)
+    der = proc.get("deroulement", [])
+    return cost_from_counts(aggregate_deme_counts(der, ops_df, ctrl_df, im_df), im_df, profil_row)
 
 
 # ============================================================
@@ -549,6 +635,214 @@ def export_latex(
     return out
 
 
+def to_subscript(s) -> str:
+    """
+    Convertit des chiffres en indices Unicode : '11' → '₁₁', '11bis' → '₁₁bis'.
+    Les caractères non numériques sont laissés tels quels.
+    """
+    subs = {"0":"₀","1":"₁","2":"₂","3":"₃","4":"₄",
+            "5":"₅","6":"₆","7":"₇","8":"₈","9":"₉"}
+    return "".join(subs.get(ch, ch) for ch in str(s))
+
+def deme_unicode(code: str, im_df: pd.DataFrame) -> str:
+    """Étiquette Unicode d'un DEME : δ₁, δ₂, ... à partir de la clef."""
+    if im_df is not None and code in im_df.index and "numero" in im_df.columns:
+        num = im_df.loc[code, "numero"]
+        if pd.notna(num):
+            return f"δ{to_subscript(int(num))}"
+    return str(code)
+
+def export_docx(
+    ops_df: pd.DataFrame,
+    ctrl_df: pd.DataFrame,
+    im_df: pd.DataFrame,
+    dict_procs: dict,
+    profil_row: pd.Series = None,
+    profil_nom: str = None,
+) -> Path:
+    """
+    Exporte en document Word (.docx) les quatre tableaux, comme l'export LaTeX :
+    DEME, opérateurs, contrôles et procédures, avec leurs coûts.
+
+    La notation symbolique utilise les caractères Unicode avec indices :
+    DEME δ₁…, opérateurs r₁…, contrôles σ₁…, procédures ρ₁…
+    Les opérateurs et contrôles sont regroupés par catégorie, avec une ligne
+    d'en-tête pleine largeur à chaque changement.
+
+    Nécessite python-docx (pip install python-docx).
+    """
+    from docx import Document
+    from docx.shared import Pt
+    from docx.enum.section import WD_ORIENT
+
+    def _clean(x) -> str:
+        """Renvoie '' pour NaN/None, sinon la chaîne."""
+        s = str(x) if x is not None else ""
+        return "" if s.strip().lower() in ("nan", "none") else s
+
+    with_profil = profil_row is not None
+
+    doc = Document()
+
+    # Orientation paysage : les tableaux sont larges
+    sec = doc.sections[0]
+    sec.orient = WD_ORIENT.LANDSCAPE
+    sec.page_width, sec.page_height = sec.page_height, sec.page_width
+
+    def add_table(headers: list):
+        """Crée un tableau avec sa ligne d'en-tête en gras."""
+        t = doc.add_table(rows=1, cols=len(headers))
+        t.style = "Light Grid Accent 1"
+        for i, h in enumerate(headers):
+            cell = t.rows[0].cells[i]
+            cell.text = h
+            for par in cell.paragraphs:
+                for r in par.runs:
+                    r.bold = True
+        return t
+
+    def add_category_row(t, cat: str, ncols: int):
+        """Ligne pleine largeur en gras pour une catégorie (cellules fusionnées)."""
+        cells = t.add_row().cells
+        merged = cells[0]
+        for c in cells[1:]:
+            merged = merged.merge(c)
+        merged.text = cat
+        for par in merged.paragraphs:
+            for r in par.runs:
+                r.bold = True
+
+    def shrink(t, size=9):
+        """Réduit la police d'un tableau pour la lisibilité."""
+        for row in t.rows:
+            for cell in row.cells:
+                for par in cell.paragraphs:
+                    for r in par.runs:
+                        r.font.size = Pt(size)
+
+    # ---- Titre général ----
+    doc.add_heading("Opérateurs, contrôles et procédures", level=0)
+    sous = doc.add_paragraph()
+    if with_profil:
+        sous.add_run(
+            f"Coûts nominaux et ajustés au profil : {profil_nom or 'profil actif'}"
+        ).italic = True
+    else:
+        sous.add_run("Coûts nominaux (aucun profil appliqué)").italic = True
+
+    # ---- 1. Tableau DEME ----
+    doc.add_heading("DEME", level=1)
+    headers = ["DEME", "Action observable", "c_M", "c_V", "c_P"]
+    t = add_table(headers)
+    for code, row in im_df.iterrows():
+        cells = t.add_row().cells
+        vals = [
+            deme_unicode(code, im_df),
+            _clean(row.get("label", code)),
+            f"{row['m']:.0f}", f"{row['v']:.0f}", f"{row['p']:.0f}",
+        ]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- 2. Tableau opérateurs ----
+    doc.add_heading("Opérateurs", level=1)
+    headers = ["r_i", "Nom", "Finalité", "Schème", "c_M", "c_V", "c_P"]
+    t = add_table(headers)
+    current_cat = None
+    for k, row in ops_df.iterrows():
+        cat = _clean(row.get("categorie", "")).strip()
+        if cat and cat != current_cat:
+            current_cat = cat
+            add_category_row(t, cat, len(headers))
+        num  = fmt_numero(row.get("numero", ""))
+        cost = calc_nominal_cost([k], ops_df, ctrl_df, im_df)
+        cells = t.add_row().cells
+        vals = [
+            f"r{to_subscript(num)}",
+            _clean(row.get("nom", "")),
+            _clean(row.get("finalite", "")),
+            _clean(row.get("scheme", "")),
+            f"{cost['m']:.1f}", f"{cost['v']:.1f}", f"{cost['p']:.1f}",
+        ]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- 3. Tableau contrôles ----
+    doc.add_heading("Contrôles", level=1)
+    headers = ["σ_j", "Nom", "Assertion 1", "Assertion 2", "c_M", "c_V", "c_P"]
+    t = add_table(headers)
+    current_cat = None
+    for k, row in ctrl_df.iterrows():
+        cat = _clean(row.get("categorie", "")).strip()
+        if cat and cat != current_cat:
+            current_cat = cat
+            add_category_row(t, cat, len(headers))
+        num  = fmt_numero(row.get("numero", ""))
+        cost = calc_nominal_cost([k], ops_df, ctrl_df, im_df)
+        cells = t.add_row().cells
+        vals = [
+            f"σ{to_subscript(num)}",
+            _clean(row.get("nom", "")),
+            _clean(row.get("assertion1", "")),
+            _clean(row.get("assertion2", "")),
+            f"{cost['m']:.1f}", f"{cost['v']:.1f}", f"{cost['p']:.1f}",
+        ]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- 4. Tableau procédures ----
+    doc.add_heading("Procédures", level=1)
+    headers = ["ρ_k", "Nom", "Description", "Déroulement", "c_M", "c_V", "c_P", "Total"]
+    if with_profil:
+        headers += ["c_M (profil)", "c_V (profil)", "c_P (profil)", "Total (profil)"]
+    t = add_table(headers)
+
+    # Correspondance clef -> notation symbolique, pour écrire le déroulement
+    sym = {}
+    for k, row in ops_df.iterrows():
+        sym[k] = f"r{to_subscript(fmt_numero(row.get('numero', '')))}"
+    for k, row in ctrl_df.iterrows():
+        sym[k] = f"σ{to_subscript(fmt_numero(row.get('numero', '')))}"
+
+    for idx, (k, v) in enumerate(dict_procs.items(), 1):
+        der  = v.get("deroulement", [])
+        der_str = " → ".join(sym.get(c, c) for c in der)
+        cost  = procedure_cost(v, ops_df, ctrl_df, im_df)
+        total = sum(cost.values())
+        cells = t.add_row().cells
+        vals = [
+            f"ρ{to_subscript(idx)}",
+            _clean(v.get("nom", "")),
+            _clean(v.get("description", "")),
+            der_str,
+            f"{cost['m']:.1f}", f"{cost['v']:.1f}", f"{cost['p']:.1f}", f"{total:.1f}",
+        ]
+        if with_profil:
+            pc = procedure_cost(v, ops_df, ctrl_df, im_df, profil_row)
+            ptot = sum(pc.values())
+            vals += [f"{pc['m']:.1f}", f"{pc['v']:.1f}", f"{pc['p']:.1f}", f"{ptot:.1f}"]
+        for i, val in enumerate(vals):
+            cells[i].text = str(val)
+    shrink(t)
+
+    # ---- Légende de la notation ----
+    doc.add_paragraph()
+    leg = doc.add_paragraph()
+    leg.add_run("Notation : ").bold = True
+    leg.add_run("δᵢ = DEME, rᵢ = opérateur, σⱼ = contrôle, ρₖ = procédure. "
+                "c_M, c_V, c_P = coûts de manipulation, perception visuelle et planification.")
+    for r in leg.runs:
+        r.font.size = Pt(9)
+
+    ts  = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out = Path(f"export_procedures_{ts}.docx")
+    doc.save(str(out))
+    return out
+
+
 # ============================================================
 # CSS
 # ============================================================
@@ -648,18 +942,43 @@ _preset_choice = st.sidebar.radio(
 )
 st.session_state.grid_height = _height_presets[_preset_choice]
 
-# --- Export LaTeX ---
+# --- Exports ---
 st.sidebar.divider()
-if st.sidebar.button("📤 Exporter en LaTeX", type="secondary", use_container_width=True):
+st.sidebar.subheader("Exports")
+
+def _get_export_data():
+    """Rassemble les données nécessaires aux exports, ou None si incomplètes."""
     ops  = st.session_state.operateurs
     ctrl = st.session_state.controles
     im   = st.session_state.inframaths
-    if ops is not None and ctrl is not None and im is not None and st.session_state.dict_procedures:
-        profil_row = None
-        if st.session_state.profil_actif != "Nominal" and st.session_state.profils is not None:
-            profil_row = st.session_state.profils.loc[st.session_state.profil_actif]
+    if ops is None or ctrl is None or im is None or not st.session_state.dict_procedures:
+        return None
+    profil_row = None
+    profil_nom = None
+    if st.session_state.profil_actif != "Nominal" and st.session_state.profils is not None:
+        profil_row = st.session_state.profils.loc[st.session_state.profil_actif]
+        profil_nom = profil_row.get("nom_profil", st.session_state.profil_actif)
+    return ops, ctrl, im, profil_row, profil_nom
+
+if st.sidebar.button("📤 Exporter en LaTeX", type="secondary", use_container_width=True):
+    data = _get_export_data()
+    if data:
+        ops, ctrl, im, profil_row, _ = data
         out_file = export_latex(ops, ctrl, im, st.session_state.dict_procedures, profil_row)
-        st.sidebar.success(f"Export créé : {out_file}")
+        st.sidebar.success(f"Export LaTeX créé : {out_file}")
+    else:
+        st.sidebar.warning("Charger les données avant d'exporter.")
+
+if st.sidebar.button("📄 Exporter en Word (.docx)", type="secondary", use_container_width=True):
+    data = _get_export_data()
+    if data:
+        ops, ctrl, im, profil_row, profil_nom = data
+        try:
+            out_file = export_docx(ops, ctrl, im, st.session_state.dict_procedures,
+                                   profil_row, profil_nom)
+            st.sidebar.success(f"Export Word créé : {out_file}")
+        except ModuleNotFoundError:
+            st.sidebar.error("Module manquant : lancez « pip install python-docx » puis réessayez.")
     else:
         st.sidebar.warning("Charger les données avant d'exporter.")
 
@@ -694,7 +1013,7 @@ if st.session_state.dict_procedures and ops is not None and ctrl is not None and
     for k, v in st.session_state.dict_procedures.items():
         der      = v.get("deroulement", [])
         der_disp = [labels_all.get(c, c) for c in der] if display_mode == "Noms" else der
-        cost     = calc_nominal_cost(der, ops, ctrl, im_df)
+        cost     = procedure_cost(v, ops, ctrl, im_df)
         row = {
             "clef":        k,
             "nom":         v["nom"],
@@ -706,7 +1025,7 @@ if st.session_state.dict_procedures and ops is not None and ctrl is not None and
             "Total":       round(sum(cost.values()), 1),
         }
         if profil_row is not None:
-            pc = calc_profil_cost(der, ops, ctrl, im_df, profil_row)
+            pc = procedure_cost(v, ops, ctrl, im_df, profil_row)
             row["M (profil)"] = round(pc["m"], 1)
             row["V (profil)"] = round(pc["v"], 1)
             row["P (profil)"] = round(pc["p"], 1)
@@ -734,7 +1053,8 @@ if st.session_state.dict_procedures and ops is not None and ctrl is not None and
     with col_del:
         if st.button("🗑️ Supprimer cette procédure"):
             del st.session_state.dict_procedures[edit_key]
-            save_procedures_csv(st.session_state.dict_procedures, proc_path, list_sep=list_sep)
+            save_procedures_csv(st.session_state.dict_procedures, proc_path,
+                                list_sep=list_sep, ops_df=ops, ctrl_df=ctrl, im_df=im_df)
             st.success(f"Procédure '{edit_key}' supprimée.")
             st.rerun()
 
@@ -800,17 +1120,19 @@ if "current_proc" in st.session_state:
             )
 
     # Grilles de boutons (regroupées par catégorie, blocs repliables)
-    # Encapsulées dans un conteneur à hauteur fixe : seules les grilles défilent,
-    # la zone déroulement/métriques ci-dessus reste visible.
+    # Chaque grille a son propre conteneur à défilement indépendant :
+    # faire défiler les opérateurs ne déplace pas les contrôles, et inversement.
+    # La zone déroulement/métriques ci-dessus reste visible dans tous les cas.
     exp = st.session_state.get("cat_expanded", True)
     grid_height = st.session_state.get("grid_height", 450)
-    with st.container(height=grid_height):
-        cL, cR = st.columns(2)
-        with cL:
-            st.markdown("### Opérateurs")
+    cL, cR = st.columns(2)
+    with cL:
+        st.markdown("### Opérateurs")
+        with st.container(height=grid_height):
             button_grid_grouped(ops, "op", st.session_state.ops_cols, expanded=exp)
-        with cR:
-            st.markdown("### Contrôles")
+    with cR:
+        st.markdown("### Contrôles")
+        with st.container(height=grid_height):
             button_grid_grouped(ctrl, "sig", st.session_state.sig_cols, expanded=exp)
 
     # Bouton corriger
@@ -831,7 +1153,8 @@ if "current_proc" in st.session_state:
                 "description": cur["description"],
                 "deroulement": cur["deroulement"].copy(),
             }
-            save_procedures_csv(st.session_state.dict_procedures, proc_path, list_sep=list_sep)
+            save_procedures_csv(st.session_state.dict_procedures, proc_path,
+                                list_sep=list_sep, ops_df=ops, ctrl_df=ctrl, im_df=im_df)
             st.session_state.pop("current_proc", None)
             st.success("Procédure enregistrée et CSV mis à jour ✅")
             st.rerun()
