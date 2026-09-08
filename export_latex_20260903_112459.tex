@@ -1,0 +1,154 @@
+% ---- Préambule LaTeX requis ----
+\newcommand{\rref}[1]{$r_{\ref{#1}}$}
+\newcommand{\cref}[1]{$\sigma_{\ref{#1}}$}
+\newcommand{\pref}[1]{$\rho_{\ref{#1}}$}
+\newcommand{\dref}[1]{$\delta_{\ref{#1}}$}
+
+\section*{DEME}
+\begin{longtable}{|c|p{5cm}|c|c|c|}
+\hline
+DEME & Action observable & $c_M$ & $c_V$ & $c_P$ \\ \hline
+$\delta_{1}$\label{deme_clic_simple} & Clic simple & 1 & 1 & 1 \\ \hline
+$\delta_{2}$\label{deme_double_clic} & Double clic & 2 & 1 & 1 \\ \hline
+$\delta_{3}$\label{deme_clic_maintenu} & Clic maintenu & 2 & 1 & 1 \\ \hline
+$\delta_{4}$\label{deme_depl_libre} & Déplacement libre & 1 & 1 & 1 \\ \hline
+$\delta_{5}$\label{deme_depl_souris_point} & Déplacement de la souris vers un point précis  & 2 & 2 & 2 \\ \hline
+$\delta_{6}$\label{deme_depl_objet_libre} & Déplacement libre d’un objet géométrique & 2 & 2 & 1 \\ \hline
+$\delta_{7}$\label{deme_depl_objet_point} & Déplacement d’un objet géométrique vers un point précis & 2 & 2 & 2 \\ \hline
+$\delta_{8}$\label{deme_selec_outil} & Sélection unique un outil dans une pile  & 2 & 2 & 2 \\ \hline
+$\delta_{9}$\label{deme_perc_metrique} & Perception métriques (longueur, distance) & 0 & 1 & 1 \\ \hline
+$\delta_{10}$\label{deme_perc_euclidienne} & perception euclidiennes (relations propriétés géométriques, parallèles, perpendiculaire, etc.) & 0 & 1 & 1 \\ \hline
+$\delta_{11}$\label{deme_perc_forme} & perception formes géométriques cercle, carré, triangle, etc. & 0 & 1 & 1 \\ \hline
+\end{longtable}
+
+\section*{Opérateurs}
+\begin{longtable}{|c|p{3cm}|p{4cm}|p{4cm}|c|c|c|}
+\hline
+$r_i$ & Nom & Finalité & Schème & $c_M$ & $c_V$ & $c_P$ \\ \hline
+\multicolumn{7}{|l|}{\textbf{Placement}} \\ \hline
+$r_{1}$\label{op_pt_libre} & placer point libre & Placer un point sur la page & Avec point, placer un point à un endroit quelconque de la page & 4.0 & 4.0 & 4.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Point}} \\ \hline
+$r_{2}$\label{op_pt_obj} & placer un point sur objet & Placer un point sur un objet & Avec point, placer un point à un endroit spécifique sur un object géométrique & 5.0 & 5.0 & 5.0 \\ \hline
+$r_{3}$\label{op_pt_inter} & placer un point sur une intersection (perception) & Placer un point à l’intersection de deux objets géométriques & Avec point, placer un point à l'intersection de deux objet géométrique & 5.0 & 5.0 & 5.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Intersection}} \\ \hline
+$r_{4}$\label{op_pt_inter_out_inter} & placer un point intersection avec outil intersection & Placer un point d'intersection entre deux droites ou deux segments & Avec intersection,mettre une des droites en surbrillance, cliquer dessus, déplacer la souris vers l'autre droite, quand elle est en surbrillance, cliquer, le point d'intersection se place entre les deux droites & 8.0 & 8.0 & 8.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Milieu}} \\ \hline
+$r_{5}$\label{op_pt_milieu_perc} & placer un point au milieu d’un segment (perception) & placer un point au milieu à la volée & avec l'outil point, placer un point au milieu (contrôle visuel) d'un segment & 5.0 & 5.0 & 5.0 \\ \hline
+$r_{6}$\label{op_pt_milieu_out_milieu} & placer le point milieu du segment avec outil milieu & avec outil milieu, placer le milieu & avec outil milieu, placer le point au milieu d'un segment & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{7}$\label{op_ajust_obj} & Ajuster la position d'un objet & Ajuster la position d'un objet dans l'espace de travail & Avec la souris sélectionner l'objet, maintenir le clic enfoncé et déplacer l'objet, relacher la souris & 6.0 & 8.0 & 8.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Nombre}} \\ \hline
+$r_{8}$\label{op_nbre} & Nombre (par nombre) & Ecrire un nombre & Avec nombre, placer la case dans l'espace de travail et inscrire un nombre & 3.0 & 3.0 & 3.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Texte}} \\ \hline
+$r_{9}$\label{op_nbre_txt} & Nombre (par texte) & Ecrire un nombre avec outil texte & Avec texte, placer la case dans l'espace de travail et inscrire un nombre. Procédure qui ne fonctionne pas & 3.0 & 3.0 & 3.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Curseur}} \\ \hline
+$r_{10}$\label{op_curseur} & Curseur & Placer un curseur & Avec curseur, placer un curseur sur l'espace ensuite ajuster le curseur à l'aide de la souris & 8.0 & 10.0 & 10.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Déplacement}} \\ \hline
+$r_{11}$\label{op_pointeur_depl_lib} & Pointeur pour déplacer vers un point libre & Déplacer  librement un objet à l’aide du pointeur & Avec le pointeur, selectionner l'objet et le déplacer librement & 6.0 & 5.0 & 4.0 \\ \hline
+$r_{11bis}$\label{op_pointeur_depl_prec} & Pointeur pour déplacer vers un point précis & Déplacer un objet  à un endroit précis à l’aide du pointeur & Avec le pointeur, selectionner l'objet et le déplacer à un endroit précis & 6.0 & 8.0 & 8.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Pointeur}} \\ \hline
+$r_{12}$\label{op_pointeur_agran} & Pointeur pour agrandir la taille d’un objet & Agrandir la taille d’un objet géométrique & Avec le pointeur, selectionner l'objet et lui donner une taille plus grande & 4.0 & 3.0 & 3.0 \\ \hline
+$r_{13}$\label{op_pointeur_reduire} & Pointeur pour réduire la taille d’un objet & Réduire la taille d’un objet géométrique & Avec le pointeur, selectionner l'objet et lui donner une taille plus petite & 0.0 & 0.0 & 0.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Planification}} \\ \hline
+$r_{14}$\label{op_dlt_all} & Efface tout & Effacer la page & Avec le pointeur, cliquer sur tout effacer & 3.0 & 3.0 & 3.0 \\ \hline
+$r_{15}$\label{op_dlt_one} & Efface dernière opération & Effacer la dernière action réalisée & Avec le pointeur, cliquer sur retour en arrière & 3.0 & 3.0 & 3.0 \\ \hline
+$r_{16}$\label{op_dlt_gom} & Efface un élément avec la gomme & Place la gomme sur l’élément à effacer & Avec gomme, se placer sur l'objet géométrique et le supprimer en cliquant dessus & 5.0 & 5.0 & 5.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Mesure}} \\ \hline
+$r_{17}$\label{op_mes_dist} & Mesure (par distance) & Déterminer une longueur & Avec distance, placer un point, déplacer la souris,la distance entre le point placé et à placer s'affiche, cliquer pour placer le second point à la distance souhaitée // Avec distance, placer un point sur l'extrémité du segment à mesurer, déplacer la souris, cliquer sur l'autre extrémité du segment, la distance entre les deux points s'affiche & 10.0 & 16.0 & 16.0 \\ \hline
+$r_{18}$\label{op_mes_long} & Mesure (par longueur) & Déterminer une longueur & Avec longueur, s'approcher de l'objet à mesurer, l'obejt se met en surbrillance et la longueur s'affiche. Cliquer sur l'objet si on souhaite placer la mesure sur l'espace de travail & 5.0 & 5.0 & 5.0 \\ \hline
+$r_{19}$\label{op_mes_dec} & Mesure (par décimètre) & Déterminer une longueur & Avec décimètre, placer le décimètre sur un première repère, déplacer vers un deuxième repère , la mesure entre les deux repères s'affiche & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{20}$\label{op_mes_ang_ang} & Mesure angle (par angle) & Mesure l’ouverture d’un angle & Avec angle, mesures l’ouverture d’un angle & 11.0 & 11.0 & 8.0 \\ \hline
+$r_{21}$\label{op_mes_ang_rap} & Mesure angle (par rapporteur) & Mesure de l’ouverture d’un angle & Avec rapporteur, mesure l’ouverture d’un angle & 11.0 & 11.0 & 8.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Opérateurs spécifiques}} \\ \hline
+$r_{22}$\label{op_sgt-pt_const_pt_vol_out_seg} & placer un segment sur un point construit et un point à la volée avec outil segment & Construire un segment qui passe par un point donné & Avec segment, construire un segment quelconque, en cliquant sur un point construit et un point à la volée & 7.0 & 7.0 & 7.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Segment}} \\ \hline
+$r_{23}$\label{op_sgt-pts_const_out_seg} & placer un segment sur deux points construits avec outil segment & Construire un segment qui passe par deux points donnés & Avec segment, construire un segment quelconque, en cliquant sur deux points construits & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{24}$\label{op_sgt-pts_vol_out_seg} & placer un segment sur deux points à la volée avec outil segment & Construire un segment à la volée & Avec segment, construire un segment quelconque en plaçant les deux points extrémités du segment à la volée & 6.0 & 6.0 & 6.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Décimètre}} \\ \hline
+$r_{25}$\label{op_seg_dec} & Segment (par décimètre) & Construire un segment d'une longueur donnée & Avec décimètre, construire un segment définir sa longueur par ajustement visuel & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{26}$\label{op_sgt-pt_const_pt_vol_out_dec} & placer un segment sur un point construit et un point à la volée avec outil décimètre & Construire un segment qui passe par un point donné & Avec décimètre, construire un segment quelconque, en cliquant sur un point construit et un point à la volée & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{27}$\label{op_sgt-pts_const_out_dec} & placer un segment sur deux points construits avec outil décimètre & Construire un segment qui passe par deux points donnés & Avec décimètre, construire un segment quelconque, en cliquant sur deux points construits & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{28}$\label{op_sgt-pts_vol_out_dec} & placer un segment sur deux points à la volée avec outil décimètre & Construire un segment à la volée & Avec décimètre, construire un segment quelconque en plaçant les deux points extrémités du segment à la volée & 6.0 & 6.0 & 6.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Demi-droite}} \\ \hline
+$r_{29}$\label{op_seg_ demi_dte} & Segment (par demi-droite) & Construire un segment & Avec demi-droite, placer un point, déplacer et cliquer. Visuellement ça ne donne pas un segment, schème d'usage peu probable chez les élèves, & 6.0 & 6.0 & 6.0 \\ \hline
+$r_{30}$\label{op_dte_pt_const_pt_vol_out_demidte} & placer une droite sur un point construit et un point à la volée avec outil demi droite & Construire un segment qui passe par un point donné & Avec demi droite, construire un segment quelconque, en cliquant sur un point construit et un point à la volée & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{31}$\label{op_dte_pts_const_out_demidte} & placer une droite sur deux points construits avec outil demi droite & Construire un segment qui passe par deux points donnés & Avec demi droite, construire un segment quelconque, en cliquant sur deux points construits & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{32}$\label{op_dte_pts_vol_out_demidte} & placer une droite sur deux points à la volée avec outil demi droite & Construire un segment à la volée & Avec demi droite, construire un segment quelconque en plaçant les deux points extrémités du segment à la volée & 6.0 & 6.0 & 6.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Droite}} \\ \hline
+$r_{34}$\label{op_dte_pt_const_pt_vol_out_dte} & placer une droite sur un point construit et un point à la volée avec outil droite & Construire un segment qui passe par un point donné & Avec droite, construire un segment quelconque, en cliquant sur un point construit et un point à la volée & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{35}$\label{op_dte_pts_const_out_dte} & placer une droite sur deux points construits avec outil droite & Construire un segment qui passe par deux points donnés & Avec droite, construire un segment quelconque, en cliquant sur deux points construits & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{36}$\label{op_dte_pts_vol_out_dte} & placer une droite sur deux points à la volée avec outil droite & Construire un segment à la volée & Avec droite, construire un segment quelconque en plaçant les deux points extrémités du segment à la volée & 6.0 & 6.0 & 6.0 \\ \hline
+$r_{37}$\label{op_perp} & Perpendiculaire & Construire une droite perpendiculaire & Avec perpendiculaire, sélectionner une droite et un point à la volée qui donne la bonne forme & 8.0 & 9.0 & 9.0 \\ \hline
+$r_{38}$\label{op_perp_pt} & Perpendiculaire par un point donné & Construire une droite perpendiculaire par un point donné qui résiste au déplacement & Avec perpendiculaire sélectionner la droite et le point définissant cet angle & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{39}$\label{op_perp_dte} & Perpendiculaire (par droite) & Construire une perpendiculaire avec une droite & Avec droite,  sélectionner une droite et un point à la volée qui donne la bonne forme & 11.0 & 12.0 & 12.0 \\ \hline
+$r_{40}$\label{op_perp_demi_dte} & Perpendiculaire (par demi droite) & Construire une perpendiculaire avec une demi droite & Avec demi-droite,  sélectionner une droite et un point à la volée qui donne la bonne perpendiculaire & 11.0 & 12.0 & 12.0 \\ \hline
+$r_{41}$\label{op_perp_sgt_pt_dte} & Perpendiculaire  point droite (par segment) & Construire une perpendiculaire avec un segment du point à la droite & Avec segment,  sélectionner  un point précis puis une droite donnée pour former une perpendiculaire à la volée & 0.0 & 0.0 & 0.0 \\ \hline
+$r_{42}$\label{op_perp_sgt_dte_pt} & Perpendiculaire droite point (par segment) & Construire une perpendiculaire avec un segment de la droite au point  & Avec segment,  sélectionner  une droite donnée puis un point pour former une perpendiculaire à la volée & 0.0 & 0.0 & 0.0 \\ \hline
+$r_{43}$\label{op_perp_sgt_pt_lib} & Perpendiculaire points à la volée (par segment) & Construire une perpendiculaire avec un segment entre 2 points placés à la volée & Avec segment,  sélectionner  deux points à la volée une perpendiculaire à la volée & 0.0 & 0.0 & 0.0 \\ \hline
+$r_{44}$\label{op_perp_equer_dte_pt_libre} & Perpendiculaire (par équerre) droite vers point libre & Construire une perpendiculaire avec une équerre & Avec équerre, s'approcher de la droite, cliquer quand la droite est en surbrillance, cliquer sur la droite, déplacer la souris sur le point, cliquer & 6.0 & 6.0 & 6.0 \\ \hline
+$r_{44b}$\label{op_perp_equer_dte_pt_fixe} & Perpendiculaire (par équerre) droite vers point fixe & Construire une perpendiculaire avec une équerre & Avec équerre, s'approcher de la droite, cliquer quand la droite est en surbrillance, cliquer sur la droite, déplacer la souris sur le point, cliquer & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{45}$\label{op_angle} & Angle (par angle) & Construire un angle & placer trois points librement espacés & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{46}$\label{op_angle_rapporteur} & Angle par rapporteur & Construire un angle d’une mesure donnée & avec rapporteur, placer trois points d’une ouverture donnée & 7.0 & 9.0 & 9.0 \\ \hline
+$r_{47}$\label{op_angle_equerre} & Angle par équerre vérification & Vérifie angle droit avec équerre comme un gabarit & Avec équerre, vérifier l'angle droit par superposition & 4.0 & 4.0 & 4.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Cercle}} \\ \hline
+$r_{49}$\label{op_cercle_pt_const_pt_vol_out_cercle} & Construire un cercle (cercle) & Construire cercle passant par un point donné et un point libre avec outil cercle & Avec cercle, placer le centre sur un point donné et déplacer librement le pointeur pour tracer le cercle & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{50}$\label{op_cercle_pts_const_out_cercle} & Construire un cercle (cercle) & Construire cercle passant par deux points donnés avec outil cercle & Avec cercle, placer le centre sur un point donné et déplacer vers un point fixe pour placer le point sur la circonférence librement & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{51}$\label{op_cercle_pts_vol_out_cercle} & Construire un cercle (cercle) & Construire cercle passant deux points placés à la volée avec outil cercle & Avec cercle, placer le point du centre librement et déplacer pour placer la circonférence librement & 6.0 & 6.0 & 6.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Compas}} \\ \hline
+$r_{52}$\label{op_cercle_pt_const_pt_vol_out_compas} & Construire cercle passant par un point donné et un point libre avec outil compas & Construire un cercle (compas) & Avec compas, placer le centre sur un point donné et déplacer vers un point fixe pour placer le point sur la circonférence librement & 7.0 & 7.0 & 7.0 \\ \hline
+$r_{53}$\label{op_cercle_pts_const_out_compas} & Construire cercle passant par deux points donnés avec outil compas & Construire un cercle (compas) & Avec compas, placer le point du centre librement et déplacer pour placer la circonférence librement & 8.0 & 8.0 & 8.0 \\ \hline
+$r_{54}$\label{op_cercle_pts_vol_out_compas} & Construire cercle passant deux points placés à la volée avec outil compas & Construire un cercle (compas) & Avec compas, placer le centre du cercle, déplacer la souris pour placer un point de la circonférence, tourner le compas, cliquer & 6.0 & 6.0 & 6.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Symétrie}} \\ \hline
+$r_{55}$\label{op_sym_axe} & Symétrie (par axe) & Placer un point ou un objet par symétrie axiale & Avec symétrie, cliquer sur un point, cliquer sur l'axe de symétrie. Le symétrique à l'axe donné apparaît & 7.0 & 7.0 & 7.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{Parallèle}} \\ \hline
+$r_{56}$\label{op_paral_lib} & Parallèle & tracer librement une parallèle à une droite ou à un segment & nan & 3.0 & 3.0 & 3.0 \\ \hline
+$r_{57}$\label{op_para_préc} & Parallèle & tracer une parallèle à une droite ou à un segment qui passe par un point précis & nan & 6.0 & 6.0 & 6.0 \\ \hline
+\end{longtable}
+
+\section*{Contrôles}
+\begin{longtable}{|c|p{3cm}|p{4cm}|p{4cm}|c|c|c|}
+\hline
+$\sigma_j$ & Nom & Assertion 1 & Assertion 2 & $c_M$ & $c_V$ & $c_P$ \\ \hline
+\multicolumn{7}{|l|}{\textbf{SEGMENT}} \\ \hline
+$\sigma_{1}$\label{cont_inst_seg} & Contrôle instrumental & Contrôle instrumental & je contrôle l’alignement avec la règle & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{2}$\label{cont_visu_seg} & Contrôle visuel segment & Contrôle visuel & je vois que c’est « droit » & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{3}$\label{cont_theo_seg} & Contrôle théorique segment & je sais qu’un segment est un « bout » de droite & je contrôle l’alignement & 0.0 & 0.0 & 0.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{PERPENDICULAIRE}} \\ \hline
+$\sigma_{4}$\label{cont_perp_form} & Perpendiculaire forme angle droit & Construire une perpendiculaire & C'est une forme d'angle droit, organisation horizontale ou verticale & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{5}$\label{cont_perp_form_outil} & perpendiculaire forme avec outil & Construire une forme perpendiculaire & C'est ce qu'on trace avec un outil sans nécessairement sélectionner les objets impliqués dans l'énoncé & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{6}$\label{cont_perp_a_droite} & perpendiculaire point droite & Une forme perpendiculaire & Utilise l'outil perpendiculaire en cliquant sur A et sur (d) & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{7}$\label{cont_perp_form_outil_perp} & Perception visuelle (utile ? Redondant avec contrôle visuel?) & construire une forme perpendiculaire à une droite par un point & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{8}$\label{cont_theo_perp} & Contrôle théorique perpendiculaire je sais qu’une perpendiculaire forme un angle a 90 & Une droite est perpendiculaire à une autre si l'angle formé entre les deux droites est un angle à 90° & La mesure de l'angle formé est de 90°, je peux affirmer que les droites sont perpendiculaires. & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{9}$\label{cont_visu_perp} & Contrôle visuel perp & nan & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{10}$\label{cont_inst_perp} & Contrôle instrumental perp & nan & Je peux le vérifier en utilisant l’équerre & 0.0 & 0.0 & 0.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{CARRE}} \\ \hline
+$\sigma_{11}$\label{cont_carre_cote} & Carré 4 côtés égaux & Un carré & C'est une forme qui a 4 côtés égaux & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{12}$\label{cont_carre_angle} & Carré 4 angles égaux & Un carré & C'est une forme qui a 4 angles égaux & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{13}$\label{cont_carre_diag} & Carré par diagonale & Un carré & C'est un quadrilatère dont les diagonales sont perpendiculaires et se coupent en leur milieu & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{14}$\label{cont_carre_sym} & Carré par axe de symétrie & Un carré & C'est un quadrilatère dont les diagonales sont l'axe de symétrie & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{15}$\label{cont_theo_carr} & Contrôle théorique carré & un carré à 4 côtés de même longueur et 4 angles droits & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{16}$\label{cont_visu_carr} & Contrôle visuel carré & un carré à une forme de carré & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{17}$\label{cont_inst_carr1} & Contrôle instrumental carré1 & un carré à 4 angles droits et 4 cotés égaux & contrôle la mesure des côtés & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{18}$\label{cont_inst_carr2} & Contrôle instrumental carré2 & un carré à 4 angles droits et 4 cotés égaux & contrôle des angles droits avec équerre & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{19}$\label{cont_inst_carr3} & Contrôle instrumental carré3 & un carré à 4 angles droits et 4 cotés égaux & contrôle des angles droits avec mesure angle & 0.0 & 0.0 & 0.0 \\ \hline
+\multicolumn{7}{|l|}{\textbf{CERCLE}} \\ \hline
+$\sigma_{20}$\label{cont_cercle_point} & cercle points & Cercle par deux points & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{21}$\label{cont_cercle_rayon} & cercle rayon & Cercle par rayon & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{22}$\label{cont_theo_cerc} & Contrôle théorique cercle & nan & nan & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{23}$\label{cont_visu_cerc} & Contrôle visuel cercle & cercle est une forme ronde & ça ressemble à un cercle & 0.0 & 0.0 & 0.0 \\ \hline
+$\sigma_{24}$\label{cont_inst_cerc} & Contrôle instrumental cercle & nan & nan & 0.0 & 0.0 & 0.0 \\ \hline
+\end{longtable}
+
+\section*{Procédures}
+\begin{longtable}{|c|p{3cm}|p{4cm}|p{5cm}|c|c|c|}
+\hline
+$\rho_k$ & Nom & Description & Déroulement & $c_M$ & $c_V$ & $c_P$ \\ \hline
+$\rho_{1}$\label{proc_visu} & Vérification visuelle &  & \rref{op_pt_obj} $\to$ \rref{op_ajust_obj} $\to$ \rref{op_nbre_txt} $\to$ \rref{op_sgt-pt_const_pt_vol_out_dec} $\to$ \rref{op_dte_pts_const_out_dte} $\to$ \cref{cont_inst_carr1} $\to$ \cref{cont_inst_carr2} & 29.0 & 31.0 & 31.0 \\ \hline
+$\rho_{2}$\label{proc_equerre} & Soutien équerre & Vérification soutenue par l’équerre &  & 0.0 & 0.0 & 0.0 \\ \hline
+$\rho_{3}$\label{proc_test1} & 1 & 23 & \rref{op_nbre} $\to$ \rref{op_seg_ demi_dte} & 9.0 & 9.0 & 9.0 \\ \hline
+$\rho_{4}$\label{proc test 3} & 456 & 56 & \rref{op_perp_pt} $\to$ \rref{op_mes_dec} $\to$ \rref{op_ajust_obj} $\to$ \rref{op_pointeur_depl_lib} $\to$ \rref{op_dlt_gom} $\to$ \rref{op_dlt_gom} $\to$ \rref{op_pointeur_agran} $\to$ \rref{op_nbre_txt} & 45.0 & 45.0 & 44.0 \\ \hline
+$\rho_{5}$\label{proc_jtesk} & d & xgdgx & \rref{op_ajust_obj} & 6.0 & 8.0 & 8.0 \\ \hline
+$\rho_{6}$\label{proc_demo} & Demo & klsdfjmwklmvbx & \rref{op_perp_pt} $\to$ \rref{op_nbre} $\to$ \rref{op_perp_dte} & 22.0 & 23.0 & 23.0 \\ \hline
+$\rho_{7}$\label{real_test} & Test & rtest & \rref{op_curseur} & 8.0 & 10.0 & 10.0 \\ \hline
+$\rho_{8}$\label{proc_test5} & test 5 & vxcdcvb & \rref{op_perp_pt} $\to$ \rref{op_nbre_txt} $\to$ \rref{op_perp_dte} & 22.0 & 23.0 & 23.0 \\ \hline
+$\rho_{9}$\label{sgt_P1} & essai sgt & essai segment & \cref{cont_theo_seg} $\to$ \rref{op_sgt-pts_const_out_seg} $\to$ \cref{cont_visu_seg} & 8.0 & 8.0 & 8.0 \\ \hline
+\end{longtable}
