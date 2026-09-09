@@ -1,0 +1,12 @@
+clef,numero,Actions observables,Manipulation,Perception visuelle,Planification -fonctions exécutives-
+deme_clic_simple,1,Clic simple,1,1,1
+deme_double_clic,2,Double clic,2,1,1
+deme_clic_maintenu,3,Clic maintenu,2,1,1
+deme_depl_libre,4,Déplacement libre,1,1,1
+deme_depl_souris_point,5,Déplacement de la souris vers un point précis ,2,2,2
+deme_depl_objet_libre,6,Déplacement libre d’un objet géométrique,2,2,1
+deme_depl_objet_point,7,Déplacement d’un objet géométrique vers un point précis,2,2,2
+deme_selec_outil,8,Sélection unique un outil dans une pile ,2,2,2
+deme_perc_metrique,9,"Perception métriques (longueur, distance)",0,1,1
+deme_perc_euclidienne,10,"perception euclidiennes (relations propriétés géométriques, parallèles, perpendiculaire, etc.)",0,1,1
+deme_perc_forme,11,"perception formes géométriques cercle, carré, triangle, etc.",0,1,1
