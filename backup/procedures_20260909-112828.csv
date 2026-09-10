@@ -1,0 +1,11 @@
+clef,nom,description,deroulement,deme_clic_simple,deme_double_clic,deme_clic_maintenu,deme_depl_libre,deme_depl_souris_point,deme_depl_objet_libre,deme_depl_objet_point,deme_selec_outil,deme_perc_metrique,deme_perc_euclidienne,deme_perc_forme
+proc_equerre,Soutien équerre,Vérification soutenue par l’équerre,,0,0,0,0,0,0,0,0,0,0,0
+proc_test1,1,23,op_nbre|op_seg_ demi_dte,3,0,0,2,0,0,0,2,0,0,0
+proc test 3,456,56,op_perp_pt|op_mes_dec|op_ajust_obj|op_pointeur_depl_lib|op_dlt_gom|op_dlt_gom|op_pointeur_agran|op_nbre_txt,7,0,3,0,9,1,1,5,1,1,1
+proc_jtesk,d,xgdgx,op_ajust_obj,0,0,1,0,1,0,1,0,1,1,1
+proc_demo,Demo,klsdfjmwklmvbx,op_perp_pt|op_nbre|op_perp_dte,7,0,0,1,3,0,0,4,0,1,0
+real_test,Test,rtest,op_curseur,0,0,1,0,1,0,1,1,1,1,1
+proc_test5,test 5,vxcdcvb,op_perp_pt|op_nbre_txt|op_perp_dte,7,0,0,1,3,0,0,4,0,1,0
+sgt_P1,essai sgt,essai segment,cont_theo_seg|op_sgt-pts_const_out_seg|cont_visu_seg,2,0,0,0,2,0,0,1,0,0,0
+essai_sgt_ter,essai procedure segment,essai,op_pointeur_agran|cont_perp_form_outil|op_pt_inter_out_inter|cont_inst_seg|op_pt_inter,3,0,1,0,4,0,0,2,0,0,0
+cont_bloc_inst_decim,bloc contrôle alignement segment avec décimètre,BLOC Contrôle instrumental alignement segment avec Décimètre,cont_inst_seg|cont_inst_seg|op_sgt-pts_const_out_dec,2,0,0,0,2,0,0,1,0,0,0
