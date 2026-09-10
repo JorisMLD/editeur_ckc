@@ -1,4 +1,4 @@
-clef,nom,description,deroulement,deme_clic_simple,deme_double_clic,deme_clic_maintenu,deme_depl_libre,deme_depl_pointeur_point,deme_depl_objet_libre,deme_depl_objet_point,deme_selec_outil,deme_perc_metrique,deme_perc_euclidienne,deme_perc_forme
+clef,nom,description,deroulement,deme_clic_simple,deme_double_clic,deme_clic_maintenu,deme_depl_libre,deme_depl_souris_point,deme_depl_objet_libre,deme_depl_objet_point,deme_selec_outil,deme_perc_metrique,deme_perc_euclidienne,deme_perc_forme
 proc_equerre,Soutien équerre,Vérification soutenue par l’équerre,,0,0,0,0,0,0,0,0,0,0,0
 proc_test1,1,23,op_nbre|op_seg_ demi_dte,3,0,0,2,0,0,0,2,0,0,0
 proc test 3,456,56,op_perp_pt|op_mes_dec|op_ajust_obj|op_pointeur_depl_lib|op_dlt_gom|op_dlt_gom|op_pointeur_agran|op_nbre_txt,7,0,3,0,9,1,1,5,1,1,1
