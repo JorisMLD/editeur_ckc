@@ -1,10 +1,11 @@
-﻿Code DEME;Actions observables;Manipulation;Perception visuelle;Planification -fonctions exécutives-
-1;Clic simple;1;0;1
-2;Clic sur objet;1;1;1
-3;Double clic;3;1;1
-4;Clic maintenu;2;1;1
-5;Déplacement libre du pointeur;1;1;1
-6;Déplacement du pointeur vers un point précis ;2;2;2
-9;Perception métrique (longueur, distance);0;1;1
-10;Perception des relations euclidiennes (relations propriétés géométriques, parallèles, perpendiculaire, etc.);0;1;1
-11;Perception des formes géométriques cercle, carré, triangle, etc.;0;1;1
+﻿clef;numero;Actions observables;Manipulation;Perception visuelle;Planification -fonctions exécutives-
+deme_clic_simple;1;Clic simple;1;0;1
+deme_clic_objet;2;Clic sur objet;1;1;1
+deme_double_clic;3;Double clic;;;
+deme_clic_maintenu;4;Clic maintenu;3;1;1
+deme_depl_libre;5;Déplacement libre du pointeur;2;1;1
+deme_depl_pointeur_point;6;Déplacement du pointeur vers un point précis ;1;1;1
+deme_perc_metrique;9;Perception métrique (longueur, distance);2;2;2
+deme_perc_euclidienne;10;Perception des relations euclidiennes (relations propriétés géométriques, parallèles, perpendiculaire, etc.);0;1;1
+deme_perc_forme;11;Perception des formes géométriques cercle, carré, triangle, etc.;0;1;1
+;;;0;1;1

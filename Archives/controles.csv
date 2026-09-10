@@ -1,4 +1,4 @@
-Unnamed: 0,Unnamed: 1,Clef,Nom,Assertion 1,Assertion 2,détail des opéraions pour calcul des deme,deme_clic_simple,deme_double_clic,deme_clic_maintenu,deme_depl_libre,deme_depl_pointeur_point,deme_depl_objet_libre,deme_depl_objet_point,deme_selec_outil,deme_perc_metrique,deme_perc_euclidienne,deme_perc_forme
+Unnamed: 0,Unnamed: 1,Clef,Nom,Assertion 1,Assertion 2,détail des opéraions pour calcul des deme,deme_clic_simple,deme_double_clic,deme_clic_maintenu,deme_depl_libre,deme_depl_souris_point,deme_depl_objet_libre,deme_depl_objet_point,deme_selec_outil,deme_perc_metrique,deme_perc_euclidienne,deme_perc_forme
 SEGMENT,1,cont_inst_seg,Contrôle instrumental,Contrôle instrumental,je contrôle l’alignement avec la règle,10 (perception relation euclidienne),,,,,,,,,,,
 ,2,cont_visu_seg,Contrôle visuel segment,Contrôle visuel,je vois que c’est « droit »,9 (perception distance),,,,,,,,,,,
 ,3,cont_theo_seg,Contrôle théorique segment,je sais qu’un segment est un « bout » de droite,je contrôle l’alignement,?,,,,,,,,,,,

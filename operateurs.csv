@@ -1,5 +1,4 @@
-﻿;;;;;;;;;;;;;;;;;
-;;Clef;Nom;Finalité immédiate;Schème;Détail des actions réalisées -sert à définir les DEME qui interviennent;I1 Clic simple;I2 clic sur objet;I3 double clic ;I4 clic maintenu;I5 déplacement libre du pointeur;I6 déplacement pointeur vers un point précis;I9 perception distance;I10 perception euclidienne;I11 perception forme;;
+;;Clef;Nom;Finalité immédiate;Schème;Détail des actions réalisées -sert à définir les DEME qui interviennent;deme_clic_simple;deme_clic_objet;deme_double_clic;deme_clic_maintenu;deme_depl_libre;deme_depl_pointeur_point;deme_perc_metrique;deme_perc_euclidienne;deme_perc_forme;;
 Opérateurs  transversaux;;;;;;;;;;;;;;;;;
 Point;1;op_pt_libre;placer point libre;Placer un point sur la page;Avec point, placer un point à un endroit quelconque de la page;placement pointeur sur Point I6, clic I2  pour selectionner Point, déplacement I5, clic I1 pour poser le point;1;1;0;0;1;1;0;0;0;;
 Point;2;op_pt_obj;placer un point sur objet;Placer un point sur un objet;Avec point, placer un point à un endroit spécifique sur un object géométrique;placement pointeur sur Point I6, clic I2 pour selectionner Point, déplacement vers un point précis I6, clic I2 pour poser le point sur l'endroit donné;0;2;0;0;0;2;0;0;0;;
